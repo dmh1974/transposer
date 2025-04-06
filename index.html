@@ -4,35 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Song Transposer</title>
- <style>
+<style>
     body {
         font-family: Arial, sans-serif;
         max-width: 800px;
         margin: 0 auto;
-        padding: 20px;
-        line-height: 1.6;
+        padding: 15px;
+        line-height: 1.5;
         background: white;
+        -webkit-text-size-adjust: 100%; /* Prevent font scaling in landscape */
     }
     h1 {
         color: #333;
         text-align: center;
-        margin-bottom: 0px;  /* Further reduced */
-        margin-top: 0;
-        padding-bottom: 0;   /* Removed padding */
+        margin: 0 0 10px 0;
+        font-size: clamp(1.5rem, 4vw, 2rem); /* Responsive font size */
     }
     .container {
         display: flex;
         flex-direction: column;
-        gap: 5px;           /* Reduced from 20px */
-        margin-top: 0px;
+        gap: 10px;
+        margin-top: 0;
     }
     textarea {
         width: 100%;
-        max-width: 100%;
-        min-height: 100px;
-        padding: 10px;
-        font-size: 14px;
-        line-height: 1.6;
+        min-height: 120px;
+        padding: 12px;
+        font-size: 16px; /* Slightly larger for mobile */
+        line-height: 1.5;
         border: 1px solid #ccc;
         border-radius: 4px;
         resize: none;
@@ -40,24 +39,29 @@
         white-space: pre;
         overflow-wrap: normal;
         overflow-x: auto;
-        overflow-y: hidden;
+        box-sizing: border-box; /* Include padding in width calculation */
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
     .transpose-controls {
         display: flex;
+        flex-wrap: wrap; /* Allow wrapping on small screens */
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         justify-content: center;
-        margin-bottom: 0px;  /* Reduced from 10px */
-        margin-top: 0px;     /* Added small margin if needed */
+        margin: 10px 0;
     }
     button {
-        padding: 8px 16px;
+        padding: 10px 18px;
         font-size: 16px;
         background-color: #4CAF50;
         color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
+        touch-action: manipulation; /* Better touch response */
+    }
+    button:active {
+        transform: scale(0.98); /* Visual feedback for touch */
     }
     .transpose-value {
         font-size: 20px;
@@ -67,12 +71,15 @@
     }
     .instructions {
         text-align: center;
-        margin: 5px 0;      /* Reduced top and bottom margin */
+        margin: 10px 0;
+        font-size: 14px;
     }
     .text-controls {
         display: flex;
+        flex-wrap: wrap; /* Allow wrapping on small screens */
         justify-content: space-between;
         align-items: center;
+        gap: 10px;
     }
     .clear-btn {
         background-color: #f44336;
@@ -83,14 +90,14 @@
     .notation-toggle {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-left: 20px;
+        gap: 8px;
+        margin-left: 0; /* Reset for mobile */
     }
     .toggle-switch {
         position: relative;
         display: inline-block;
-        width: 60px;
-        height: 34px;
+        width: 52px; /* Slightly smaller for mobile */
+        height: 28px;
     }
     .toggle-switch input {
         opacity: 0;
@@ -111,8 +118,8 @@
     .slider:before {
         position: absolute;
         content: "";
-        height: 26px;
-        width: 26px;
+        height: 20px;
+        width: 20px;
         left: 4px;
         bottom: 4px;
         background-color: white;
@@ -123,11 +130,33 @@
         background-color: #2196F3;
     }
     input:checked + .slider:before {
-        transform: translateX(26px);
+        transform: translateX(24px);
     }
     .toggle-label {
         font-size: 14px;
         font-weight: bold;
+    }
+
+    /* Mobile-specific adjustments */
+    @media (max-width: 600px) {
+        body {
+            padding: 10px;
+        }
+        .transpose-controls {
+            gap: 6px;
+        }
+        button {
+            padding: 8px 14px;
+            font-size: 15px;
+        }
+        .text-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .notation-toggle {
+            justify-content: center;
+            margin-top: 5px;
+        }
     }
 </style>
 </head>
