@@ -26,22 +26,22 @@
         gap: 10px;
         margin-top: 0;
     }
-    textarea {
-        width: 100%;
-        min-height: 120px;
-        padding: 12px;
-        font-size: 16px; /* Slightly larger for mobile */
-        line-height: 1.5;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        resize: none;
-        font-family: monospace;
-        white-space: pre;
-        overflow-wrap: normal;
-        overflow-x: auto;
-        box-sizing: border-box; /* Include padding in width calculation */
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    }
+textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    font-size: 16px;
+    line-height: 1.5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: none;
+    font-family: monospace;
+    white-space: pre;       /* Preserve whitespace & prevent wrapping */
+    overflow-x: auto;       /* Show horizontal scroll if needed */
+    overflow-y: hidden;     /* Hide vertical scroll */
+    box-sizing: border-box; /* Include padding in width calculation */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
     .transpose-controls {
         display: flex;
         flex-wrap: wrap; /* Allow wrapping on small screens */
