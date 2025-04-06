@@ -59,9 +59,6 @@
         border-radius: 4px;
         cursor: pointer;
     }
-    button:hover {
-        background-color: #45a049;
-    }
     .transpose-value {
         font-size: 20px;
         font-weight: bold;
@@ -80,14 +77,57 @@
     .clear-btn {
         background-color: #f44336;
     }
-    .clear-btn:hover {
-        background-color: #d32f2f;
-    }
     .reset-btn {
+        background-color: #4CAF50;
+    }
+    .notation-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: 20px;
+    }
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+    }
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #4CAF50;
+        transition: .4s;
+        border-radius: 34px;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    input:checked + .slider {
         background-color: #2196F3;
     }
-    .reset-btn:hover {
-        background-color: #0b7dda;
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+    .toggle-label {
+        font-size: 14px;
+        font-weight: bold;
     }
 </style>
 </head>
@@ -102,9 +142,17 @@
             Transpose:<div class="transpose-value" id="transposeValue">0</div>
             <button id="transposeUp">+</button>
             <button id="resetTranspose" class="reset-btn">Reset</button>
-        <div class="text-controls">
-            <button id="clearText" class="clear-btn">Clear</button>
-        </div>
+            <div class="notation-toggle">
+                <span class="toggle-label">Sharps</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="notationToggle">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label">Flats</span>
+            </div>
+            <div class="text-controls">
+                <button id="clearText" class="clear-btn">Clear</button>
+            </div>
         </div>
         <textarea id="songText">[Example Verse]
      F              Bb/F       F
@@ -125,9 +173,11 @@ was blind, but now I see.</textarea>
             const transposeValue = document.getElementById('transposeValue');
             const resetTranspose = document.getElementById('resetTranspose');
             const clearText = document.getElementById('clearText');
+            const notationToggle = document.getElementById('notationToggle');
             
             let currentTranspose = 0;
             let originalText = songText.value;
+            let useFlats = false; // Default to sharps
             
             // Auto-resize textarea to fit content
             function autoResize() {
@@ -185,7 +235,9 @@ was blind, but now I see.</textarea>
             const chordRegex = /([A-G][#b]?(?:\/[A-G][#b]?)?(?:maj|min|m|M|aug|dim|sus)?[0-9]*)/g;
             const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
             const flatEquivalents = {'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'};
-            const useFlats = ['Db', 'Eb', 'Gb', 'Ab', 'Bb'];
+            const sharpEquivalents = {'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'};
+            const preferredFlats = ['Db', 'Eb', 'Gb', 'Ab', 'Bb'];
+            const preferredSharps = ['C#', 'D#', 'F#', 'G#', 'A#'];
             
             // Update the transpose value display
             function updateTransposeDisplay() {
@@ -213,15 +265,17 @@ was blind, but now I see.</textarea>
                     return root + '/' + bass;
                 }
                 
-                // Handle flat equivalents
+                // Handle flat/sharp equivalents based on current setting
                 const baseChord = chord.replace(/maj|min|m|M|aug|dim|sus|[0-9]+/, '');
-                let flatBase = Object.keys(flatEquivalents).find(k => flatEquivalents[k] === baseChord);
-                if (flatBase) {
-                    chord = chord.replace(baseChord, flatBase);
+                
+                // Convert to sharp notation for processing
+                let sharpChord = chord;
+                if (flatEquivalents[baseChord]) {
+                    sharpChord = chord.replace(baseChord, flatEquivalents[baseChord]);
                 }
                 
                 // Split into root and quality
-                const match = chord.match(/^([A-G][#b]?)(.*)/);
+                const match = sharpChord.match(/^([A-G][#b]?)(.*)/);
                 if (!match) return chord;
                 
                 const root = match[1];
@@ -230,13 +284,7 @@ was blind, but now I see.</textarea>
                 // Find current index
                 let index = chromaticScale.indexOf(root);
                 if (index === -1) {
-                    // Try flat equivalents
-                    const sharpRoot = flatEquivalents[root];
-                    if (sharpRoot) {
-                        index = chromaticScale.indexOf(sharpRoot);
-                    } else {
-                        return chord; // Couldn't find the root
-                    }
+                    return chord; // Couldn't find the root
                 }
                 
                 // Calculate new index
@@ -246,12 +294,11 @@ was blind, but now I see.</textarea>
                 // Get new root
                 let newRoot = chromaticScale[newIndex];
                 
-                // Convert to flat if preferred for certain chords
-                if (useFlats.includes(newRoot)) {
-                    // Already in flat notation
-                } else if (Object.values(flatEquivalents).includes(newRoot)) {
-                    const flatVersion = Object.entries(flatEquivalents).find(([k,v]) => v === newRoot)[0];
-                    newRoot = flatVersion;
+                // Convert to preferred notation
+                if (useFlats && sharpEquivalents[newRoot]) {
+                    newRoot = sharpEquivalents[newRoot];
+                } else if (!useFlats && flatEquivalents[newRoot]) {
+                    newRoot = flatEquivalents[newRoot];
                 }
                 
                 return newRoot + quality;
@@ -334,6 +381,19 @@ was blind, but now I see.</textarea>
                 originalText = '';
                 currentTranspose = 0;
                 updateTransposeDisplay();
+            });
+            
+            notationToggle.addEventListener('change', function() {
+                useFlats = this.checked;
+                if (currentTranspose !== 0) {
+                    // Retranspose with new notation preference
+                    const semitones = currentTranspose;
+                    currentTranspose = 0;
+                    songText.value = originalText;
+                    currentTranspose = semitones;
+                    transposeSong(semitones);
+                    updateTransposeDisplay();
+                }
             });
             
             // Initialize
