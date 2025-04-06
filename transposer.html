@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Song Transposer</title>
+ <style>
+    body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+    }
+    h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 0px;  /* Further reduced */
+        margin-top: 0;
+        padding-bottom: 0;   /* Removed padding */
+    }
+    .container {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;           /* Reduced from 20px */
+        margin-top: 0px;
+    }
+    textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 10px;
+        font-size: 16px;
+        line-height: 1.6;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        resize: none;
+        font-family: monospace;
+        white-space: pre;
+        overflow-wrap: normal;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    .transpose-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 0px;  /* Reduced from 10px */
+        margin-top: 0px;     /* Added small margin if needed */
+    }
+    button {
+        padding: 8px 16px;
+        font-size: 16px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #45a049;
+    }
+    .transpose-value {
+        font-size: 20px;
+        font-weight: bold;
+        min-width: 30px;
+        text-align: center;
+    }
+    .instructions {
+        text-align: center;
+        margin: 5px 0;      /* Reduced top and bottom margin */
+    }
+    .text-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .clear-btn {
+        background-color: #f44336;
+    }
+    .clear-btn:hover {
+        background-color: #d32f2f;
+    }
+    .reset-btn {
+        background-color: #2196F3;
+    }
+    .reset-btn:hover {
+        background-color: #0b7dda;
+    }
+</style>
+</head>
+<body>
+    <h1>Chord Transposer</h1>
+    <div class="container">
+        <div class="instructions">
+            <p>Paste your song in Ultimate Guitar format below. Use the +/- buttons to transpose.</p>
+        </div>
+        <div class="transpose-controls">
+            <button id="transposeDown">-</button>
+            Transpose:<div class="transpose-value" id="transposeValue">0</div>
+            <button id="transposeUp">+</button>
+            <button id="resetTranspose" class="reset-btn">Reset</button>
+        <div class="text-controls">
+            <button id="clearText" class="clear-btn">Clear Text</button>
+        </div>
+        </div>
+        <textarea id="songText">[Verse 1]
+     F              Bb/F       F
+Amazing Grace, how sweet the sound,
+                         C7
+that saved a wretch like me.
+     F      F7        Bb      F
+I once was lost, but now am found,
+     Dm        C7     F   Bb/C
+was blind, but now I see.</textarea>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const songText = document.getElementById('songText');
+            const transposeUp = document.getElementById('transposeUp');
+            const transposeDown = document.getElementById('transposeDown');
+            const transposeValue = document.getElementById('transposeValue');
+            const resetTranspose = document.getElementById('resetTranspose');
+            const clearText = document.getElementById('clearText');
+            
+            let currentTranspose = 0;
+            let originalText = songText.value;
+            
+            // Auto-resize textarea to fit content
+            function autoResize() {
+                songText.style.height = 'auto';
+                songText.style.height = songText.scrollHeight + 'px';
+            }
+            
+            // Initialize and add event listener
+            autoResize();
+            
+            // Handle paste event
+            songText.addEventListener('paste', function(e) {
+                // Prevent the default paste behavior
+                e.preventDefault();
+                
+                // Get the pasted text
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                
+                // Reset transpose state first
+                if (currentTranspose !== 0) {
+                    currentTranspose = 0;
+                    updateTransposeDisplay();
+                }
+                
+                // Set the original text to the pasted content
+                originalText = pastedText;
+                
+                // Insert the pasted text at the cursor position
+                const startPos = songText.selectionStart;
+                const endPos = songText.selectionEnd;
+                songText.value = songText.value.substring(0, startPos) + pastedText + songText.value.substring(endPos);
+                
+                // Move cursor to the end of the pasted text
+                const newCursorPos = startPos + pastedText.length;
+                songText.setSelectionRange(newCursorPos, newCursorPos);
+                
+                autoResize();
+            });
+            
+            songText.addEventListener('input', function() {
+                autoResize();
+                
+                // Only check for significant changes
+                if (Math.abs(songText.value.length - originalText.length) > 10 || 
+                    !songText.value.includes(originalText) && !originalText.includes(songText.value)) {
+                    if (currentTranspose !== 0) {
+                        currentTranspose = 0;
+                        updateTransposeDisplay();
+                    }
+                    originalText = songText.value;
+                }
+            });
+            
+            // Chord definitions
+            const chordRegex = /([A-G][#b]?(?:\/[A-G][#b]?)?(?:maj|min|m|M|aug|dim|sus)?[0-9]*)/g;
+            const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const flatEquivalents = {'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'};
+            const useFlats = ['Db', 'Eb', 'Gb', 'Ab', 'Bb'];
+            
+            // Update the transpose value display
+            function updateTransposeDisplay() {
+                transposeValue.textContent = currentTranspose;
+            }
+            
+            // Check if a line contains only chords (no lyrics)
+            function isChordOnlyLine(line) {
+                // Remove all chord matches and whitespace
+                const withoutChords = line.replace(chordRegex, '').trim();
+                // Also remove any other common chord notation characters just in case
+                const cleaned = withoutChords.replace(/[|\[\](){}]/g, '').trim();
+                return cleaned === '';
+            }
+            
+            // Transpose a single chord
+            function transposeChord(chord, semitones) {
+                if (!chord) return chord;
+                
+                // Handle slash chords
+                if (chord.includes('/')) {
+                    const parts = chord.split('/');
+                    const root = transposeChord(parts[0], semitones);
+                    const bass = transposeChord(parts[1], semitones);
+                    return root + '/' + bass;
+                }
+                
+                // Handle flat equivalents
+                const baseChord = chord.replace(/maj|min|m|M|aug|dim|sus|[0-9]+/, '');
+                let flatBase = Object.keys(flatEquivalents).find(k => flatEquivalents[k] === baseChord);
+                if (flatBase) {
+                    chord = chord.replace(baseChord, flatBase);
+                }
+                
+                // Split into root and quality
+                const match = chord.match(/^([A-G][#b]?)(.*)/);
+                if (!match) return chord;
+                
+                const root = match[1];
+                const quality = match[2];
+                
+                // Find current index
+                let index = chromaticScale.indexOf(root);
+                if (index === -1) {
+                    // Try flat equivalents
+                    const sharpRoot = flatEquivalents[root];
+                    if (sharpRoot) {
+                        index = chromaticScale.indexOf(sharpRoot);
+                    } else {
+                        return chord; // Couldn't find the root
+                    }
+                }
+                
+                // Calculate new index
+                let newIndex = (index + semitones) % 12;
+                if (newIndex < 0) newIndex += 12;
+                
+                // Get new root
+                let newRoot = chromaticScale[newIndex];
+                
+                // Convert to flat if preferred for certain chords
+                if (useFlats.includes(newRoot)) {
+                    // Already in flat notation
+                } else if (Object.values(flatEquivalents).includes(newRoot)) {
+                    const flatVersion = Object.entries(flatEquivalents).find(([k,v]) => v === newRoot)[0];
+                    newRoot = flatVersion;
+                }
+                
+                return newRoot + quality;
+            }
+            
+            // Transpose all chords in the text while preserving alignment
+            function transposeSong(semitones) {
+                const lines = songText.value.split('\n');
+                const newLines = [];
+                
+                for (const line of lines) {
+                    // Skip section headers like [Verse 1]
+                    if (line.trim().startsWith('[')) {
+                        newLines.push(line);
+                        continue;
+                    }
+                    
+                    // Only process lines that contain ONLY chords (no lyrics)
+                    if (isChordOnlyLine(line)) {
+                        let newLine = line;
+                        const chordMatches = [...line.matchAll(chordRegex)];
+                        
+                        if (chordMatches.length > 0) {
+                            // We need to replace chords while maintaining their positions
+                            let lastIndex = 0;
+                            let result = '';
+                            
+                            for (const match of chordMatches) {
+                                // Add text before the chord (whitespace)
+                                result += line.slice(lastIndex, match.index);
+                                
+                                // Transpose and add the chord
+                                const transposedChord = transposeChord(match[0], semitones);
+                                result += transposedChord;
+                                
+                                lastIndex = match.index + match[0].length;
+                            }
+                            
+                            // Add remaining text after last chord (whitespace)
+                            result += line.slice(lastIndex);
+                            newLine = result;
+                        }
+                        
+                        newLines.push(newLine);
+                    } else {
+                        // Leave lines with lyrics unchanged
+                        newLines.push(line);
+                    }
+                }
+                
+                songText.value = newLines.join('\n');
+                autoResize(); // Resize after transposing
+            }
+            
+            // Event listeners
+            transposeUp.addEventListener('click', function() {
+                currentTranspose++;
+                transposeSong(1);
+                updateTransposeDisplay();
+            });
+            
+            transposeDown.addEventListener('click', function() {
+                currentTranspose--;
+                transposeSong(-1);
+                updateTransposeDisplay();
+            });
+            
+            resetTranspose.addEventListener('click', function() {
+                if (currentTranspose !== 0) {
+                    currentTranspose = 0;
+                    updateTransposeDisplay();
+                    songText.value = originalText;
+                    autoResize();
+                }
+            });
+            
+            clearText.addEventListener('click', function() {
+                songText.value = '';
+                autoResize();
+                originalText = '';
+                currentTranspose = 0;
+                updateTransposeDisplay();
+            });
+            
+            // Initialize
+            updateTransposeDisplay();
+        });
+    </script>
+</body>
+</html>
