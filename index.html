@@ -23,12 +23,6 @@
             text-align: center;
             margin-bottom: 20px;
         }
-    .container {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-top: 0;
-    }
 textarea {
     width: 100%;
     min-height: 120px;
@@ -163,7 +157,6 @@ textarea {
 <body>
     <div class="container">
     <h1>Song Transposer</h1>
-    <div class="container">
         <div class="transpose-controls">
             <button id="transposeDown">- 1</button>
             Transpose:<div class="transpose-value" id="transposeValue">0</div>
@@ -191,7 +184,7 @@ I once was lost, but now am found,
      Dm        C7     F   Bb/C
 was blind, but now I see.</textarea>
     </div>
-</div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const songText = document.getElementById('songText');
